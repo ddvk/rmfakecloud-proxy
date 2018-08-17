@@ -9,20 +9,33 @@ I wanted HTTPS for `godoc -http :6060`.
 
 ## Usage
 ```
-secure -key-file path/to/key/file -cert-file path/to/cert/file -upstream http://localhost:6060 -addr :443
+usage: secure [-addr host:port] -cert certfile -key keyfile upstream
+  -addr string
+        listen address (default ":443")
+  -cert string
+        path to cert file
+  -key string
+        path to key file
+  upstream string
+        upstream url
+```
+
+### Example
+```
+secure -cert cert.pem -key key.pem http://localhost:6060
 ```
 
 ## Demo
 *nix:
 ```
-# generate cert
+# generate self-signed certificate and private key
 openssl req -newkey rsa:4096 -nodes -keyout key.pem -x509 -days 365 -out cert.pem -subj "/CN=localhost"
 
 # start godoc
 godoc -http localhost:6060 &
 
 # secure it
-go run main.go -key-file key.pem -cert-file cert.pem -upstream http://localhost:6060 -addr :443
+secure -key key.pem -cert cert.pem http://localhost:6060
 ```
 
 Windows (PowerShell)
@@ -30,11 +43,11 @@ Windows (PowerShell)
 # somehow obtain key.pem and cert.pem
 
 # start godoc
-# cmd: start godoc -http localhost:6060
+# Command Prompt: start godoc -http localhost:6060
 Start-Process godoc "-http localhost:6060"
 
 # secure it
-go run main.go -key-file key.pem -cert-file cert.pem -upstream http://localhost:6060 -addr :443
+secure -key key.pem -cert cert.pem http://localhost:6060
 ```
 
 ## Features

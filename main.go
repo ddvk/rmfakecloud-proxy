@@ -1,14 +1,17 @@
+// secure is a super simple TLS termination proxy
 package main
 
 import (
+	"context"
 	"flag"
+	"fmt"
+	"log"
+	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"fmt"
-	"net/http"
-	"os/signal"
 	"os"
-	"context"
+	"os/signal"
+	"path/filepath"
 	"syscall"
 )
 
@@ -20,14 +23,28 @@ var (
 )
 
 func init() {
-	flag.StringVar(&certFile, "cert-file", "", "path to cert file")
-	flag.StringVar(&keyFile, "key-file", "", "path to key file")
-	flag.StringVar(&upstream, "upstream", "", "upstream address")
 	flag.StringVar(&addr, "addr", ":443", "listen address")
+	flag.StringVar(&certFile, "cert", "", "path to cert file")
+	flag.StringVar(&keyFile, "key", "", "path to key file")
+
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(),
+			"usage: %s [-addr host:port] -cert certfile -key keyfile upstream\n",
+			filepath.Base(os.Args[0]))
+		flag.PrintDefaults()
+		fmt.Fprintln(flag.CommandLine.Output(), "  upstream string\n    \tupstream url")
+	}
 }
 
 func _main() error {
 	flag.Parse()
+
+	if flag.NArg() == 1 {
+		upstream = flag.Arg(0)
+	} else {
+		flag.Usage()
+		os.Exit(2)
+	}
 
 	u, err := url.Parse(upstream)
 	if err != nil {
@@ -40,27 +57,24 @@ func _main() error {
 		Addr:    addr,
 	}
 
-	idleConnsClosed := make(chan struct{})
+	done := make(chan struct{})
 	go func() {
 		sig := make(chan os.Signal, 1)
 		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 		fmt.Println(<-sig)
 
-		// We received an interrupt signal, shut down.
 		if err := srv.Shutdown(context.Background()); err != nil {
-			// Error from closing listeners, or context timeout:
-			fmt.Printf("HTTP server Shutdown: %v", err)
+			fmt.Printf("Shutdown: %v", err)
 		}
-		close(idleConnsClosed)
+		close(done)
 	}()
 
+	log.Printf("cert-file=%s key-file=%s listen-addr=%s upstream-url=%s", certFile, keyFile, srv.Addr, u.String())
 	if err := srv.ListenAndServeTLS(certFile, keyFile); err != http.ErrServerClosed {
-		// Error starting or closing listener:
 		return fmt.Errorf("ListenAndServeTLS: %v", err)
 	}
 
-	<-idleConnsClosed
-
+	<-done
 	return nil
 }
 
