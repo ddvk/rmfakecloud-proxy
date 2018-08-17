@@ -20,16 +20,18 @@ var (
 	keyFile  string
 	upstream string
 	addr     string
+	version  bool
 )
 
 func init() {
 	flag.StringVar(&addr, "addr", ":443", "listen address")
 	flag.StringVar(&certFile, "cert", "", "path to cert file")
 	flag.StringVar(&keyFile, "key", "", "path to key file")
+	flag.BoolVar(&version, "version", false, "print version string and exit")
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(),
-			"usage: %s [-addr host:port] -cert certfile -key keyfile upstream\n",
+			"usage: %s [-addr host:port] -cert certfile -key keyfile [-version] upstream\n",
 			filepath.Base(os.Args[0]))
 		flag.PrintDefaults()
 		fmt.Fprintln(flag.CommandLine.Output(), "  upstream string\n    \tupstream url")
@@ -38,6 +40,11 @@ func init() {
 
 func _main() error {
 	flag.Parse()
+
+	if version {
+		fmt.Fprintln(flag.CommandLine.Output(), Version)
+		os.Exit(0)
+	}
 
 	if flag.NArg() == 1 {
 		upstream = flag.Arg(0)
