@@ -53,3 +53,5 @@ secure -key key.pem -cert cert.pem http://localhost:6060
 ## Features
 - [x] TLS termination proxy
 - [ ] Redirect HTTP to HTTPS
+- [ ] Config file support
+- [ ] Rudimentary logging
