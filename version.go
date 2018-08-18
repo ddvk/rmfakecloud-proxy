@@ -3,4 +3,4 @@
 
 package main
 
-const Version = "secure v0.1.0 (windows-amd64) go1.10\nhttps://github.com/yi-jiayu/secure"
+const Version = "secure {{ .Version }} ({{ .GOOS }}-{{ .GOARCH }}) {{ .GoVersion }}\n{{ .Homepage }}"
