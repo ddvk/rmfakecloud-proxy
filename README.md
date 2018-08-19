@@ -1,5 +1,5 @@
 # secure
-Super simple HTTPS reverse proxy
+Single-minded HTTPS reverse proxy
 
 ## Overview
 TODO
