@@ -1,3 +1,5 @@
+//go:generate go run generate/versioninfo.go
+
 // secure is a super simple TLS termination proxy
 package main
 
