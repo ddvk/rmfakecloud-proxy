@@ -1,9 +1,12 @@
 #!/bin/bash
-SERVICE_NAME=proxy
+set -e
+
+UNIT_NAME=proxy
+BINARY=rmfake-proxy
 DESTINATION="/home/root/rmfakecloud"
 
 echo ""
-echo "rmfakecloud proxy installer"
+echo "rmFakeCloud proxy installer"
 echo ""
 
 
@@ -12,10 +15,11 @@ echo ""
 
 function unpack(){
     mkdir -p ${DESTINATION}
-    systemctl stop proxy || true
+    systemctl stop ${UNIT_NAME} || true
     # Find __ARCHIVE__ maker, read archive content and decompress it
     ARCHIVE=$(awk '/^__ARCHIVE__/ {print NR + 1; exit 0; }' "${0}")
-    tail -n+${ARCHIVE} "${0}" | gunzip > ${DESTINATION}/${SERVICE_NAME}
+    tail -n+${ARCHIVE} "${0}" | gunzip > ${DESTINATION}/${BINARY}
+    chmod +x  ${DESTINATION}/${BINARY}
 }
 
 # marks all as unsynced so that they are not deleted
@@ -30,7 +34,7 @@ workdir=$DESTINATION
 cat > $workdir/proxy.cfg <<EOF
 URL=
 EOF
-cat > /etc/systemd/system/proxy.service <<EOF
+cat > /etc/systemd/system/${UNIT_NAME}.service <<EOF
 [Unit]
 Description=reverse proxy
 #StartLimitIntervalSec=600
@@ -41,30 +45,33 @@ After=home.mount
 Environment=HOME=/home/root
 #EnvironmentFile=$workdir/proxy.cfg
 WorkingDirectory=$workdir
-ExecStart=$workdir/${SERVICE_NAME} -cert $workdir/proxy.crt -key $workdir/proxy.key ${cloudurl}
+ExecStart=$workdir/${BINARY} -cert $workdir/proxy.crt -key $workdir/proxy.key ${cloudurl}
 
 [Install]
 WantedBy=multi-user.target
 EOF
 systemctl daemon-reload
-systemctl enable ${SERVICE_NAME}
-systemctl restart ${SERVICE_NAME}
+systemctl enable ${UNIT_NAME}
+systemctl restart ${UNIT_NAME}
 }
 
 function uninstall(){
-    systemctl stop ${SERVICE_NAME}
-    systemctl disable ${SERVICE_NAME}
-    rm proxy.key proxy.crt ca.crt ca.srl ca.key proxy.pubkey proxy.csr csr.conf proxy.cfg
+    systemctl stop ${UNIT_NAME}
+    systemctl disable ${UNIT_NAME}
+    #rm proxy.key proxy.crt ca.crt ca.srl ca.key proxy.pubkey proxy.csr csr.conf proxy.cfg
     rm /usr/local/share/ca-certificates/ca.crt
+    update-ca-certificates --fresh
     rm /etc/systemd/system/proxy.service
     sed -i '/# rmfake_start/,/# rmfake_end/d' /etc/hosts
     echo "Marking files as not synced to prevent data loss"
     fixsync
+    rm -fr $DESTINATION
     echo "You can restart xochitl now"
 }
 
 function generate_certificates(){
 # thanks to  https://gist.github.com/Soarez/9688998
+pushd $DESTINATION
 
 cat <<EOF > csr.conf
 [ req ]
@@ -140,8 +147,9 @@ if [ ! -f proxy.crt ]; then
 else
     echo "crt exists"
 fi
+popd
 }
-# Put your logic here (if you need)
+
 function install_certificates(){
     certdir="/usr/local/share/ca-certificates"
     certname=$certdir/ca.crt
@@ -151,7 +159,7 @@ function install_certificates(){
         update-ca-certificates --fresh
     fi
     mkdir -p $certdir
-    cp ca.crt $certdir/
+    cp $DESTINATION/ca.crt $certdir/
     update-ca-certificates --fresh
 }
 
@@ -169,23 +177,24 @@ EOF
 
 }
 
+function getproxy(){
+    read -p "Enter your own cloud url: " url
+    echo $url
+}
+
 function doinstall(){
     unpack
     generate_certificates
     install_certificates
     # install proxy
-    url=getproxy
-    installproxy.sh $url
+    url=$(getproxy)
+    install_proxyservice $url
     patch_hosts
     systemctl stop xochitl
     fixsync
     systemctl start xochitl
 }
 
-function getproxy(){
-    read -p "Enter your own cloud url: " url
-    echo $url
-}
 
 case $1 in
     "uninstall" )
@@ -202,11 +211,23 @@ case $1 in
         if [ $# -lt 1 ]; then
              url=$(getproxy)
         fi
-        echo $url
+        install_proxyservice $url
      ;;
 
      * )
-     echo "params"
+cat <<EOF
+Usage:
+
+install
+    installs
+
+uninstall
+    uninstall
+
+setproxy [cloudurl]
+    changes the cloud address to
+
+EOF
          ;;
 
 esac
