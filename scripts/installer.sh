@@ -104,6 +104,9 @@ subjectAltName=@san
 [ san ]
 DNS.1 = *.appspot.com
 DNS.2 = my.remarkable.com
+DNS.3 = internal.cloud.remarkable.com
+DNS.4 = ping.remarkable.com
+DNS.5 = *.remarkable.com
 # DNS.3 = any additional hosts
 EOF
 
@@ -171,6 +174,8 @@ function patch_hosts(){
 127.0.0.1 service-manager-production-dot-remarkable-production.appspot.com
 127.0.0.1 local.appspot.com
 127.0.0.1 my.remarkable.com
+127.0.0.1 internal.cloud.remarkable.com
+127.0.0.1 ping.remarkable.com
 # rmfake_end
 EOF
     fi
