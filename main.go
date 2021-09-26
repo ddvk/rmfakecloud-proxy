@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 )
 
@@ -77,21 +78,72 @@ func getConfig() (config *Config, err error) {
 	return &cfg, nil
 }
 
+func singleJoiningSlash(a, b string) string {
+	aslash := strings.HasSuffix(a, "/")
+	bslash := strings.HasPrefix(b, "/")
+	switch {
+	case aslash && bslash:
+		return a + b[1:]
+	case !aslash && !bslash:
+		return a + "/" + b
+	}
+	return a + b
+}
+
+func joinURLPath(a, b *url.URL) (path, rawpath string) {
+	if a.RawPath == "" && b.RawPath == "" {
+		return singleJoiningSlash(a.Path, b.Path), ""
+	}
+	// Same as singleJoiningSlash, but uses EscapedPath to determine
+	// whether a slash should be added
+	apath := a.EscapedPath()
+	bpath := b.EscapedPath()
+
+	aslash := strings.HasSuffix(apath, "/")
+	bslash := strings.HasPrefix(bpath, "/")
+
+	switch {
+	case aslash && bslash:
+		return a.Path + b.Path[1:], apath + bpath[1:]
+	case !aslash && !bslash:
+		return a.Path + "/" + b.Path, apath + "/" + bpath
+	}
+	return a.Path + b.Path, apath + bpath
+}
+
 func _main() error {
 	cfg, err := getConfig()
 	if err != nil {
 		return err
 	}
 
-	u, err := url.Parse(cfg.Upstream)
+	upstream, err := url.Parse(cfg.Upstream)
 	if err != nil {
 		return fmt.Errorf("invalid upstream address: %v", err)
 	}
 
-	rp := httputil.NewSingleHostReverseProxy(u)
+	upstreamQuery := upstream.RawQuery
+	director := func(req *http.Request) {
+		req.URL.Scheme = upstream.Scheme
+		req.Host = upstream.Host
+		req.URL.Host = upstream.Host
+		req.URL.Path, req.URL.RawPath = joinURLPath(upstream, req.URL)
+		if upstreamQuery == "" || req.URL.RawQuery == "" {
+			req.URL.RawQuery = upstreamQuery + req.URL.RawQuery
+		} else {
+			req.URL.RawQuery = upstreamQuery + "&" + req.URL.RawQuery
+		}
+		if _, ok := req.Header["User-Agent"]; !ok {
+			// explicitly disable User-Agent so it's not set to default value
+			req.Header.Set("User-Agent", "")
+		}
+	}
+
 	srv := http.Server{
-		Handler: rp,
-		Addr:    cfg.Addr,
+		Handler: &httputil.ReverseProxy{
+			Director: director,
+		},
+		Addr: cfg.Addr,
 	}
 
 	done := make(chan struct{})
@@ -106,7 +158,7 @@ func _main() error {
 		close(done)
 	}()
 
-	log.Printf("cert-file=%s key-file=%s listen-addr=%s upstream-url=%s", cfg.CertFile, cfg.KeyFile, srv.Addr, u.String())
+	log.Printf("cert-file=%s key-file=%s listen-addr=%s upstream-url=%s", cfg.CertFile, cfg.KeyFile, srv.Addr, upstream.String())
 	if err := srv.ListenAndServeTLS(cfg.CertFile, cfg.KeyFile); err != http.ErrServerClosed {
 		return fmt.Errorf("ListenAndServeTLS: %v", err)
 	}
