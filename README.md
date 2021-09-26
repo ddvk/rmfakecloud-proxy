@@ -13,6 +13,7 @@ usage: secure [-addr host:port] -cert certfile -key keyfile upstream
         path to cert file
   -key string
         path to key file
+  -c configfile
   upstream string
         upstream url
 ```
@@ -22,3 +23,10 @@ usage: secure [-addr host:port] -cert certfile -key keyfile upstream
 secure -cert cert.pem -key key.pem http://localhost:6060
 ```
 
+## Configfile
+```yaml
+cert: proxy.crt 
+key: proxy.key
+upstream: https://somehost:123
+addr: 8080
+```

@@ -7,7 +7,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -16,13 +15,16 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
+
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	CertFile string `yaml:"certfile"`
-	KeyFile  string `yaml:"keyfile"`
+	CertFile string `yaml:"cert"`
+	KeyFile  string `yaml:"key"`
 	Upstream string `yaml:"upstream"`
 	Addr     string `yaml:"addr"`
 }
@@ -64,6 +66,10 @@ func getConfig() (config *Config, err error) {
 		err = yaml.Unmarshal(data, &cfg)
 		if err != nil {
 			return nil, fmt.Errorf("cant parse config, %v", err)
+		}
+		if _, err := strconv.Atoi(cfg.Addr); err == nil {
+			cfg.Addr = ":" + cfg.Addr
+
 		}
 		return &cfg, nil
 	}
