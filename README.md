@@ -28,5 +28,5 @@ secure -cert cert.pem -key key.pem http://localhost:6060
 cert: proxy.crt 
 key: proxy.key
 upstream: https://somehost:123
-addr: 8080
+#addr: :443
 ```
