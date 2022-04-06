@@ -103,6 +103,7 @@ DNS.2 = my.remarkable.com
 DNS.3 = internal.cloud.remarkable.com
 DNS.4 = ping.remarkable.com
 DNS.5 = *.remarkable.com
+DNS.6 = backtrace-proxy.cloud.remarkable.engineering
 EOF
 
 # ca
@@ -172,6 +173,7 @@ function patch_hosts(){
 127.0.0.1 my.remarkable.com
 127.0.0.1 internal.cloud.remarkable.com
 127.0.0.1 ping.remarkable.com
+127.0.0.1 backtrace-proxy.cloud.remarkable.engineering
 # rmfake_end
 EOF
     fi
