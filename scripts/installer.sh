@@ -99,11 +99,10 @@ subjectAltName=@san
 
 [ san ]
 DNS.1 = *.appspot.com
-DNS.2 = my.remarkable.com
-DNS.3 = internal.cloud.remarkable.com
-DNS.4 = ping.remarkable.com
-DNS.5 = *.remarkable.com
-DNS.6 = backtrace-proxy.cloud.remarkable.engineering
+DNS.2 = *.remarkable.com
+DNS.3 = *.cloud.remarkable.com
+DNS.4 = *.cloud.remarkable.engineering
+DNS.5 = *.rmfakecloud.localhost
 EOF
 
 # ca
@@ -171,8 +170,8 @@ function patch_hosts(){
 127.0.0.1 service-manager-production-dot-remarkable-production.appspot.com
 127.0.0.1 local.appspot.com
 127.0.0.1 my.remarkable.com
-127.0.0.1 internal.cloud.remarkable.com
 127.0.0.1 ping.remarkable.com
+127.0.0.1 internal.cloud.remarkable.com
 127.0.0.1 backtrace-proxy.cloud.remarkable.engineering
 # rmfake_end
 EOF
