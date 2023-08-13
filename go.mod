@@ -1,4 +1,4 @@
-module github.com/yi-jiayu/secure
+module github.com/ddvk/rmfakecloud-proxy
 
 go 1.15
 
