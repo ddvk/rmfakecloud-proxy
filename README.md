@@ -6,7 +6,7 @@ Single-minded HTTPS reverse proxy
 
 ## Usage
 ```
-usage: secure [-addr host:port] -cert certfile -key keyfile upstream
+usage: rmfake-proxy [-addr host:port] -cert certfile -key keyfile upstream
   -addr string
         listen address (default ":443")
   -cert string
@@ -20,7 +20,7 @@ usage: secure [-addr host:port] -cert certfile -key keyfile upstream
 
 ### Example
 ```
-secure -cert cert.pem -key key.pem http://localhost:6060
+rmfake-proxy -cert cert.pem -key key.pem http://localhost:6060
 ```
 
 ## Configfile
