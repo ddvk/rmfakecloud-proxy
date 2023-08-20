@@ -6,7 +6,7 @@ Single-minded HTTPS reverse proxy
 
 ## Usage
 ```
-usage: rmfake-proxy [-addr host:port] -cert certfile -key keyfile upstream
+usage: rmfakecloud-proxy [-addr host:port] -cert certfile -key keyfile upstream
   -addr string
         listen address (default ":443")
   -cert string
@@ -20,12 +20,12 @@ usage: rmfake-proxy [-addr host:port] -cert certfile -key keyfile upstream
 
 ### Example
 ```
-rmfake-proxy -cert cert.pem -key key.pem http://localhost:6060
+rmfakecloud-proxy -cert cert.pem -key key.pem http://localhost:6060
 ```
 
 ## Configfile
 ```yaml
-cert: proxy.crt 
+cert: proxy.crt
 key: proxy.key
 upstream: https://somehost:123
 #addr: :443

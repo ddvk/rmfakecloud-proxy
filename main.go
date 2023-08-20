@@ -1,6 +1,6 @@
 //go:generate go run generate/versioninfo.go
 
-// rmfake-proxy is a fork of "secure", which is a super simple TLS termination proxy
+// rmfakecloud-proxy is a fork of "secure", which is a super simple TLS termination proxy
 package main
 
 import (

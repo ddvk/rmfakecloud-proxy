@@ -17,7 +17,7 @@ var tmpl = template.Must(template.New("version.go").Parse(`//go:generate go run 
 
 package main
 
-const Version = "rmfake-proxy {{ .Version }} ({{ .GOOS }}-{{ .GOARCH }}) {{ .GoVersion }}\n{{ .Homepage }}"
+const Version = "rmfakecloud-proxy {{ .Version }} ({{ .GOOS }}-{{ .GOARCH }}) {{ .GoVersion }}\n{{ .Homepage }}"
 `))
 
 type VersionInfo struct {

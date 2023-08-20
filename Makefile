@@ -1,6 +1,6 @@
-BINARY=dist/rmfake-proxy
-WINBINARY=dist/rmfake-proxy.exe
-LINUXBINARY=dist/rmfake-proxy64
+BINARY=dist/rmfakecloud-proxy
+WINBINARY=dist/rmfakecloud-proxy.exe
+LINUXBINARY=dist/rmfakecloud-proxy64
 INSTALLER=dist/installer.sh
 .PHONY: clean
 all: $(INSTALLER) $(WINBINARY) $(LINUXBINARY)
@@ -14,7 +14,7 @@ $(BINARY): version.go main.go
 $(WINBINARY): version.go main.go
 	GOOS=windows go build -ldflags="-w -s" -o $@
 
-version.go: 
+version.go:
 	go generate
 
 $(INSTALLER): $(BINARY) scripts/installer.sh
