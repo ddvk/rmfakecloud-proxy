@@ -19,7 +19,7 @@ function unpack(){
 
 # marks all as unsynced so that they are not deleted
 function fixsync(){
-    grep sync ~/.local/share/remarkable/xochitl/*.metadata -l | xargs sed -i 's/synced\": true/synced\": false/'
+    grep sync ~/.local/share/remarkable/xochitl/*.metadata -l | xargs -r sed -i 's/synced\": true/synced\": false/'
 } 
 
 function install_proxyservice(){
