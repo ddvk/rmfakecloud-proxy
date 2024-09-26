@@ -1,6 +1,6 @@
-BINARY=dist/rmfake-proxy
-WINBINARY=dist/rmfake-proxy.exe
-LINUXBINARY=dist/rmfake-proxy64
+BINARY=dist/rmfakecloud-proxy
+WINBINARY=dist/rmfakecloud-proxy.exe
+LINUXBINARY=dist/rmfakecloud-proxy64
 INSTALLER=dist/installer.sh
 .PHONY: clean
 all: $(INSTALLER) $(WINBINARY) $(LINUXBINARY)

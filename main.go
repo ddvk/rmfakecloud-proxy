@@ -58,7 +58,7 @@ func getConfig() (config *Config, err error) {
 
 	if configFile != "" {
 		var data []byte
-		data, err = ioutil.ReadFile(configFile)
+		data, err = os.ReadFile(configFile)
 
 		if err != nil {
 			return

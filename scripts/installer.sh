@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-UNIT_NAME=proxy
-BINARY=rmfake-proxy
+UNIT_NAME=rmfakecloud-proxy
+BINARY=rmfakecloud-proxy
 DESTINATION="/home/root/rmfakecloud"
 
 
@@ -26,19 +26,15 @@ function install_proxyservice(){
 cloudurl=$1
 echo "Setting cloud sync to: ${cloudurl}"
 workdir=$DESTINATION
-cat > $workdir/proxy.cfg <<EOF
-URL=
-EOF
 cat > /etc/systemd/system/${UNIT_NAME}.service <<EOF
 [Unit]
-Description=reverse proxy
+Description=rmfakecloud reverse proxy
 #StartLimitIntervalSec=600
 #StartLimitBurst=4
 After=home.mount
 
 [Service]
 Environment=HOME=/home/root
-#EnvironmentFile=$workdir/proxy.cfg
 WorkingDirectory=$workdir
 ExecStart=$workdir/${BINARY} -cert $workdir/proxy.bundle.crt -key $workdir/proxy.key ${cloudurl}
 
