@@ -20,7 +20,7 @@ function unpack(){
 # marks all as unsynced so that they are not deleted
 function fixsync(){
     grep sync ~/.local/share/remarkable/xochitl/*.metadata -l | xargs -r sed -i 's/synced\": true/synced\": false/'
-} 
+}
 
 function install_proxyservice(){
 cloudurl=$1
@@ -99,10 +99,11 @@ DNS.2 = *.remarkable.com
 DNS.3 = *.cloud.remarkable.com
 DNS.4 = *.cloud.remarkable.engineering
 DNS.5 = *.rmfakecloud.localhost
+DNS.6 = *.apphost.com
 EOF
 
 # ca
-if [ ! -f ca.crt ]; then 
+if [ ! -f ca.crt ]; then
     echo "Generating CA key and crt..."
     openssl genrsa -out ca.key 2048
     openssl req -new -sha256 -x509 -key ca.key -out ca.crt -days 3650 -subj /CN=rmfakecloud
@@ -112,7 +113,7 @@ else
     echo "CA exists"
 fi
 
-if [ ! -f proxy.key ]; then 
+if [ ! -f proxy.key ]; then
     echo "Generating private key..."
     openssl genrsa -out proxy.key 2048
     rm -f proxy.pubkey
@@ -120,7 +121,7 @@ else
     echo "Private key exists"
 fi
 
-if [ ! -f proxy.pubkey ]; then 
+if [ ! -f proxy.pubkey ]; then
     echo "Generating pub key..."
     openssl rsa -in proxy.key -pubout -out proxy.pubkey
     rm -f proxy.crt
@@ -128,16 +129,16 @@ else
     echo "Pub key exists"
 fi
 
-if [ ! -f proxy.crt ]; then 
+if [ ! -f proxy.crt ]; then
     echo "Generating csr and crt..."
-    openssl req -new -config ./csr.conf -key proxy.key -out proxy.csr 
+    openssl req -new -config ./csr.conf -key proxy.key -out proxy.csr
 
     # Signing
     openssl x509 -req  -in proxy.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out proxy.crt -days 3650 -extfile csr.conf -extensions caext
     cat proxy.crt ca.crt > proxy.bundle.crt
 
     #echo "showing result"
-    #openssl x509 -in proxy.bundle.crt -text -noout 
+    #openssl x509 -in proxy.bundle.crt -text -noout
 
     echo "Generation complete!"
 else
@@ -169,6 +170,7 @@ function patch_hosts(){
 127.0.0.1 ping.remarkable.com
 127.0.0.1 internal.cloud.remarkable.com
 127.0.0.1 backtrace-proxy.cloud.remarkable.engineering
+127.0.0.1 local.apphost.com
 # rmfake_end
 EOF
     fi
