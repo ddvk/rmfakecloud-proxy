@@ -9,7 +9,7 @@ Single-minded HTTPS reverse proxy
 
 ### Manual
 Download `installer-rm12.sh` for rm1/2 or `installer-rmpro.sh` on a pc.  
-Transnfer to the tablet with `scp` / `WinSCP`  
+Transfer to the tablet with `scp` / `WinSCP`  
 run installer on the tablet over ssh  
 ```
 chmod +x installer-xxx.sh
