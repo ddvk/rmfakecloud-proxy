@@ -99,6 +99,9 @@ DNS.2 = *.remarkable.com
 DNS.3 = *.cloud.remarkable.com
 DNS.4 = *.cloud.remarkable.engineering
 DNS.5 = *.rmfakecloud.localhost
+DNS.6 = *.internal.cloud.remarkable.com
+DNS.7 = *.tectonic.remarkable.com
+DNS.8 = *.ping.remarkable.com
 EOF
 
 # ca
@@ -169,6 +172,9 @@ function patch_hosts(){
 127.0.0.1 ping.remarkable.com
 127.0.0.1 internal.cloud.remarkable.com
 127.0.0.1 backtrace-proxy.cloud.remarkable.engineering
+127.0.0.1 dev.ping.remarkable.com
+127.0.0.1 dev.tectonic.remarkable.com
+127.0.0.1 dev.internal.cloud.remarkable.com
 # rmfake_end
 EOF
     fi
