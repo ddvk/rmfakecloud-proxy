@@ -163,10 +163,25 @@ func _main() error {
 		close(done)
 	}()
 
-	log.Printf("cert-file=%s key-file=%s listen-addr=%s upstream-url=%s", cfg.CertFile, cfg.KeyFile, srv.Addr, upstream.String())
-	if err := srv.ListenAndServeTLS(cfg.CertFile, cfg.KeyFile); err != http.ErrServerClosed {
-		return fmt.Errorf("ListenAndServeTLS: %v", err)
-	}
+        if cfg.CertFile != "" && cfg.KeyFile != "" {
+          log.Printf("cert-file=%s key-file=%s listen-addr=%s upstream-url=%s", cfg.CertFile, cfg.KeyFile, srv.Addr, upstream.String())
+          if err := srv.ListenAndServeTLS(cfg.CertFile, cfg.KeyFile); err != http.ErrServerClosed {
+                  return fmt.Errorf("ListenAndServeTLS: %v", err)
+          }
+        } else {
+          if cfg.CertFile == "" && cfg.KeyFile == "" {
+            log.Printf("No cert or key specified, launching as http server: listen-addr=%s upstream-url=%s", srv.Addr, upstream.String())
+          } else if cfg.CertFile != "" {
+            log.Printf("No cert, launching as http server: listen-addr=%s upstream-url=%s", srv.Addr, upstream.String())
+          } else {
+            log.Printf("No key specified, launching as http server: listen-addr=%s upstream-url=%s", srv.Addr, upstream.String())
+          }
+
+          if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+                  return fmt.Errorf("ListenAndServe: %v", err)
+          }
+        }
+
 
 	<-done
 	return nil
