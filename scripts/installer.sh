@@ -171,6 +171,7 @@ function patch_hosts(){
 127.0.0.1 my.remarkable.com
 127.0.0.1 ping.remarkable.com
 127.0.0.1 internal.cloud.remarkable.com
+127.0.0.1 eu.tectonic.remarkable.com
 127.0.0.1 backtrace-proxy.cloud.remarkable.engineering
 127.0.0.1 dev.ping.remarkable.com
 127.0.0.1 dev.tectonic.remarkable.com
