@@ -102,6 +102,7 @@ DNS.5 = *.rmfakecloud.localhost
 DNS.6 = *.internal.cloud.remarkable.com
 DNS.7 = *.tectonic.remarkable.com
 DNS.8 = *.ping.remarkable.com
+DNS.9 = *.internal.tctn.cloud.remarkable.com
 EOF
 
 # ca
@@ -176,6 +177,7 @@ function patch_hosts(){
 127.0.0.1 dev.ping.remarkable.com
 127.0.0.1 dev.tectonic.remarkable.com
 127.0.0.1 dev.internal.cloud.remarkable.com
+127.0.0.1 eu.internal.tctn.cloud.remarkable.com
 # rmfake_end
 EOF
     fi
