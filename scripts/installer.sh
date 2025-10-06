@@ -178,6 +178,7 @@ function patch_hosts(){
 127.0.0.1 dev.tectonic.remarkable.com
 127.0.0.1 dev.internal.cloud.remarkable.com
 127.0.0.1 eu.internal.tctn.cloud.remarkable.com
+127.0.0.1 webapp-prod.cloud.remarkable.engineering
 # rmfake_end
 EOF
     fi
