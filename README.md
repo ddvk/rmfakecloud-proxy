@@ -29,14 +29,25 @@ umount -R /etc
 
 ## Usage
 ```
-usage: rmfakecloud-proxy [-addr host:port] -cert certfile -key keyfile upstream
+usage: rmfakecloud-proxy -c [config.yml] [-addr host:port] -cert certfile -key keyfile [-client-cert file] [-client-key file] [-cf-client-id value] [-cf-client-secret value] [-version] upstream
   -addr string
         listen address (default ":443")
+  -c string
+        config file
   -cert string
         path to cert file
   -key string
         path to key file
-  -c configfile
+  -cf-client-id string
+        Cloudflare Access Client ID (optional)
+  -cf-client-secret string
+        Cloudflare Access Client Secret (optional)
+  -client-cert string
+        path to client cert file for mTLS (optional)
+  -client-key string
+        path to client key file for mTLS (optional)
+  -version
+        print version string and exit
   upstream string
         upstream url
 ```

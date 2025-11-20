@@ -22,10 +22,48 @@ function fixsync(){
     grep sync ~/.local/share/remarkable/xochitl/*.metadata -l | xargs -r sed -i 's/synced\": true/synced\": false/'
 } 
 
+# Normalize Cloudflare token input (strips prefixes like "CF-Access-Client-Id:" or "cf-access-client-id:")
+function normalize_cf_token(){
+    local input="$1"
+    # Remove leading/trailing whitespace
+    input=$(echo "$input" | xargs)
+    
+    # Strip common prefixes (case-insensitive)
+    if [[ "$input" =~ ^[Cc][Ff]-[Aa]ccess-[Cc]lient-[Ii]d:\ *(.+)$ ]]; then
+        echo "${BASH_REMATCH[1]}"
+    elif [[ "$input" =~ ^[Cc][Ff]-[Aa]ccess-[Cc]lient-[Ss]ecret:\ *(.+)$ ]]; then
+        echo "${BASH_REMATCH[1]}"
+    elif [[ "$input" =~ ^[Cc][Ff]-[Aa]ccess-[Cc]lient-[Ii]d=(.+)$ ]]; then
+        echo "${BASH_REMATCH[1]}"
+    elif [[ "$input" =~ ^[Cc][Ff]-[Aa]ccess-[Cc]lient-[Ss]ecret=(.+)$ ]]; then
+        echo "${BASH_REMATCH[1]}"
+    else
+        echo "$input"
+    fi
+}
+
 function install_proxyservice(){
 cloudurl=$1
+cf_client_id=$2
+cf_client_secret=$3
+client_cert_file=$4
+client_key_file=$5
 echo "Setting cloud sync to: ${cloudurl}"
 workdir=$DESTINATION
+
+# Build ExecStart command with optional CF parameters
+exec_start="$workdir/${BINARY} -cert $workdir/proxy.bundle.crt -key $workdir/proxy.key"
+
+if [ -n "$cf_client_id" ] && [ -n "$cf_client_secret" ]; then
+    exec_start="$exec_start -cf-client-id \"$cf_client_id\" -cf-client-secret \"$cf_client_secret\""
+fi
+
+if [ -n "$client_cert_file" ] && [ -n "$client_key_file" ]; then
+    exec_start="$exec_start -client-cert \"$workdir/$client_cert_file\" -client-key \"$workdir/$client_key_file\""
+fi
+
+exec_start="$exec_start ${cloudurl}"
+
 cat > /etc/systemd/system/${UNIT_NAME}.service <<EOF
 [Unit]
 Description=rmfakecloud reverse proxy
@@ -36,7 +74,7 @@ After=home.mount
 [Service]
 Environment=HOME=/home/root
 WorkingDirectory=$workdir
-ExecStart=$workdir/${BINARY} -cert $workdir/proxy.bundle.crt -key $workdir/proxy.key ${cloudurl}
+ExecStart=$exec_start
 
 [Install]
 WantedBy=multi-user.target
@@ -189,6 +227,24 @@ function getproxy(){
     echo $url
 }
 
+function get_cf_credentials(){
+    read -p "Enter Cloudflare Access Client ID (optional, press Enter to skip): " cf_id
+    cf_id=$(normalize_cf_token "$cf_id")
+    
+    if [ -n "$cf_id" ]; then
+        read -p "Enter Cloudflare Access Client Secret: " cf_secret
+        cf_secret=$(normalize_cf_token "$cf_secret")
+    fi
+    
+    echo "$cf_id|$cf_secret"
+}
+
+function get_client_certificates(){
+    read -p "Enter path to client certificate file (optional, press Enter to skip): " client_cert
+    read -p "Enter path to client key file (optional, press Enter to skip): " client_key
+    echo "$client_cert|$client_key"
+}
+
 function doinstall(){
     echo "Extracting embedded binary..."
     unpack
@@ -198,9 +254,19 @@ function doinstall(){
     # install proxy
     url=$1
     if [ -z $url ]; then
-         url=$(getproxy)
+        url=$(getproxy)
     fi
-    install_proxyservice $url
+
+    # Get Cloudflare credentials if not provided
+    cf_creds=$(get_cf_credentials)
+    cf_client_id=$(echo "$cf_creds" | cut -d'|' -f1)
+    cf_client_secret=$(echo "$cf_creds" | cut -d'|' -f2)
+    client_creds=$(get_client_certificates)
+    client_cert_file=$(echo "$client_creds" | cut -d'|' -f1)
+    client_key_file=$(echo "$client_creds" | cut -d'|' -f2)
+    
+    install_proxyservice "$url" "$cf_client_id" "$cf_client_secret" "$client_cert_file" "$client_key_file"
+
     echo "Patching /etc/hosts"
     patch_hosts
     echo "Stoping xochitl.."
@@ -220,7 +286,12 @@ case $1 in
 
      "install" )
         shift 1
-        doinstall $1
+        url=$1
+        shift 1 || true
+        cf_client_id=$(normalize_cf_token "$1")
+        shift 1 || true
+        cf_client_secret=$(normalize_cf_token "$1")
+        doinstall "$url" "$cf_client_id" "$cf_client_secret"
         ;;
 
      "gencert" )
@@ -230,10 +301,22 @@ case $1 in
      "setcloud" )
         shift 1
         url=$1
-        if [ $# -lt 1 ]; then
-             url=$(getproxy)
+        shift 1 || true
+        cf_client_id=$(normalize_cf_token "$1")
+        shift 1 || true
+        cf_client_secret=$(normalize_cf_token "$1")
+        
+        if [ -z "$url" ]; then
+            url=$(getproxy)
         fi
-        install_proxyservice $url
+        
+        if [ -z "$cf_client_id" ]; then
+            cf_creds=$(get_cf_credentials)
+            cf_client_id=$(echo "$cf_creds" | cut -d'|' -f1)
+            cf_client_secret=$(echo "$cf_creds" | cut -d'|' -f2)
+        fi
+
+        install_proxyservice "$url" "$cf_client_id" "$cf_client_secret" "$client_cert_file" "$client_key_file"
         ;;
 
      * )
@@ -243,8 +326,8 @@ rmFakeCloud reverse proxy installer
 
 Usage:
 
-install [cloudurl]
-    installs and asks for cloud url
+install [cloudurl] [cf-client-id] [cf-client-secret] [client-cert-file] [client-key-file]
+    installs and asks for cloud url and optional Cloudflare credentials
 
 uninstall
     uninstall, removes everything
@@ -252,8 +335,8 @@ uninstall
 gencert
     generate certificates
 
-setcloud [cloudurl]
-    changes the cloud address to
+setcloud [cloudurl] [cf-client-id] [cf-client-secret] [client-cert-file] [client-key-file]
+    changes the cloud address and optional Cloudflare credentials
 
 EOF
         ;;
