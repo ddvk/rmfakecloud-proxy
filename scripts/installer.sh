@@ -17,6 +17,25 @@ function unpack(){
     chmod +x  ${DESTINATION}/${BINARY}
 }
 
+function prepare_fs(){
+    local device_id
+    device_id="$(cat /sys/devices/soc0/machine)"
+    case $device_id in
+        "reMarkable 1.0" | "reMarkable Prototype 1"|"reMarkable 2.0")
+            ;;
+        "reMarkable Ferrari"|"reMarkable Chiappa")
+            echo "Detected device with read-only root filesystem - preparing filesystem..."
+            mount -o remount,rw / 2>/dev/null || true
+            umount -R /etc 2>/dev/null || true
+            ;;
+        *)
+            echo "Error: Unsupported device: $device_id"
+            exit 1
+            ;;
+    esac
+}
+
+
 # marks all as unsynced so that they are not deleted
 function fixsync(){
     grep sync ~/.local/share/remarkable/xochitl/*.metadata -l | xargs -r sed -i 's/synced\": true/synced\": false/'
@@ -47,6 +66,7 @@ systemctl restart ${UNIT_NAME}
 }
 
 function uninstall(){
+    prepare_fs
     systemctl stop ${UNIT_NAME}
     systemctl disable ${UNIT_NAME}
     #rm proxy.key proxy.crt ca.crt ca.srl ca.key proxy.pubkey proxy.csr csr.conf proxy.cfg
@@ -190,6 +210,7 @@ function getproxy(){
 }
 
 function doinstall(){
+    prepare_fs
     echo "Extracting embedded binary..."
     unpack
     pushd "${DESTINATION}"
@@ -228,6 +249,7 @@ case $1 in
         ;;
 
      "setcloud" )
+        prepare_fs
         shift 1
         url=$1
         if [ $# -lt 1 ]; then
