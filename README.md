@@ -19,7 +19,7 @@ chmod +x installer-xxx.sh
 ### Use toltec if supported
 `opkg install rmfakecloud-proxy`
 
-### rmpro
+### reMarkable Paper Pro and reMarkable Paper Pro Move
 To make it permanent, make root writable and unmount /etc first e.g.
 ```
 mount -o remount,rw /
