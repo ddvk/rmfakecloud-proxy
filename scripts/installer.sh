@@ -43,8 +43,19 @@ function fixsync(){
 
 function install_proxyservice(){
 cloudurl=$1
+client_cert_file=$2
+client_key_file=$3
 echo "Setting cloud sync to: ${cloudurl}"
 workdir=$DESTINATION
+
+exec_start="$workdir/${BINARY} -cert $workdir/proxy.bundle.crt -key $workdir/proxy.key"
+
+if [ -n "$client_cert_file" ] && [ -n "$client_key_file" ]; then
+    exec_start="$exec_start -client-cert $workdir/$client_cert_file -client-key $workdir/$client_key_file"
+fi
+
+exec_start="$exec_start ${cloudurl}"
+
 cat > /etc/systemd/system/${UNIT_NAME}.service <<EOF
 [Unit]
 Description=rmfakecloud reverse proxy
@@ -55,7 +66,7 @@ After=home.mount
 [Service]
 Environment=HOME=/home/root
 WorkingDirectory=$workdir
-ExecStart=$workdir/${BINARY} -cert $workdir/proxy.bundle.crt -key $workdir/proxy.key ${cloudurl}
+ExecStart=$exec_start
 
 [Install]
 WantedBy=multi-user.target
@@ -209,6 +220,12 @@ function getproxy(){
     echo $url
 }
 
+function get_client_certificate(){
+    read -p "Enter filename of client certificate (optional, press Enter to skip): " client_cert
+    read -p "Enter filename of client key (optional, press Enter to skip): " client_key
+    echo "$client_cert|$client_key"
+}
+
 function doinstall(){
     prepare_fs
     echo "Extracting embedded binary..."
@@ -218,10 +235,18 @@ function doinstall(){
     install_certificates
     # install proxy
     url=$1
+    client_cert_file=$2
+    client_key_file=$3
     if [ -z $url ]; then
-         url=$(getproxy)
+        url=$(getproxy)
+
+        client=$(get_client_certificate)
+        client_cert_file=$(echo $client | cut -d'|' -f1)
+        client_key_file=$(echo $client | cut -d'|' -f2)
     fi
-    install_proxyservice $url
+    
+    install_proxyservice "$url" "$client_cert_file" "$client_key_file"
+
     echo "Patching /etc/hosts"
     patch_hosts
     echo "Stoping xochitl.."
@@ -241,7 +266,11 @@ case $1 in
 
      "install" )
         shift 1
-        doinstall $1
+        url=$1
+        client_cert_file=$2
+        client_key_file=$3
+
+        doinstall "$url" "$client_cert_file" "$client_key_file"
         ;;
 
      "gencert" )
@@ -252,10 +281,12 @@ case $1 in
         prepare_fs
         shift 1
         url=$1
+        client_cert_file=$2
+        client_key_file=$3
         if [ $# -lt 1 ]; then
              url=$(getproxy)
         fi
-        install_proxyservice $url
+        install_proxyservice "$url" "$client_cert_file" "$client_key_file"
         ;;
 
      * )
@@ -265,8 +296,8 @@ rmFakeCloud reverse proxy installer
 
 Usage:
 
-install [cloudurl]
-    installs and asks for cloud url
+install [cloudurl] [client-cert-file] [client-key-file]
+    installs and asks for cloud url and, optionally, client cert and key files
 
 uninstall
     uninstall, removes everything
@@ -274,8 +305,8 @@ uninstall
 gencert
     generate certificates
 
-setcloud [cloudurl]
-    changes the cloud address to
+setcloud [cloudurl] [client-cert-file] [client-key-file]
+    changes the cloud address and, optionally, client cert and key files
 
 EOF
         ;;

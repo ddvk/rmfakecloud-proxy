@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"log"
@@ -22,10 +23,12 @@ import (
 )
 
 type Config struct {
-	CertFile string `yaml:"cert"`
-	KeyFile  string `yaml:"key"`
-	Upstream string `yaml:"upstream"`
-	Addr     string `yaml:"addr"`
+	CertFile       string `yaml:"cert"`
+	KeyFile        string `yaml:"key"`
+	Upstream       string `yaml:"upstream"`
+	Addr           string `yaml:"addr"`
+	ClientCertFile string `yaml:"client_cert"`
+	ClientKeyFile  string `yaml:"client_key"`
 }
 
 var (
@@ -39,11 +42,13 @@ func getConfig() (config *Config, err error) {
 	flag.StringVar(&cfg.Addr, "addr", ":443", "listen address")
 	flag.StringVar(&cfg.CertFile, "cert", "", "path to cert file")
 	flag.StringVar(&cfg.KeyFile, "key", "", "path to key file")
+	flag.StringVar(&cfg.ClientCertFile, "client-cert", "", "path to client cert file for mTLS (optional)")
+	flag.StringVar(&cfg.ClientKeyFile, "client-key", "", "path to client key file for mTLS (optional)")
 	flag.BoolVar(&version, "version", false, "print version string and exit")
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(),
-			"usage: %s -c [config.yml] [-addr host:port] -cert certfile -key keyfile [-version] upstream\n",
+			"usage: %s -c [config.yml] [-addr host:port] -cert certfile -key keyfile [-client-cert file] [-client-key file] [-version] upstream\n",
 			filepath.Base(os.Args[0]))
 		flag.PrintDefaults()
 		fmt.Fprintln(flag.CommandLine.Output(), "  upstream string\n    \tupstream url")
@@ -144,9 +149,29 @@ func _main() error {
 		}
 	}
 
+	var transport *http.Transport
+	if cfg.ClientCertFile != "" && cfg.ClientKeyFile != "" {
+		clientCert, err := tls.LoadX509KeyPair(cfg.ClientCertFile, cfg.ClientKeyFile)
+		if err != nil {
+			return fmt.Errorf("failed to load client certificate: %v", err)
+		}
+
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{clientCert},
+		}
+
+		transport = &http.Transport{
+			TLSClientConfig: tlsConfig,
+		}
+		log.Printf("mTLS enabled with client-cert=%s client-key=%s", cfg.ClientCertFile, cfg.ClientKeyFile)
+	} else {
+		transport = http.DefaultTransport.(*http.Transport)
+	}
+
 	srv := http.Server{
 		Handler: &httputil.ReverseProxy{
-			Director: director,
+			Director:  director,
+			Transport: transport,
 		},
 		Addr: cfg.Addr,
 	}
@@ -164,6 +189,10 @@ func _main() error {
 	}()
 
 	log.Printf("cert-file=%s key-file=%s listen-addr=%s upstream-url=%s", cfg.CertFile, cfg.KeyFile, srv.Addr, upstream.String())
+	if cfg.ClientCertFile != "" && cfg.ClientKeyFile != "" {
+		log.Printf("client-cert=%s client-key=%s", cfg.ClientCertFile, cfg.ClientKeyFile)
+	}
+
 	if err := srv.ListenAndServeTLS(cfg.CertFile, cfg.KeyFile); err != http.ErrServerClosed {
 		return fmt.Errorf("ListenAndServeTLS: %v", err)
 	}
