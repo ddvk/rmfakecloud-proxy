@@ -29,14 +29,21 @@ umount -R /etc
 
 ## Usage
 ```
-usage: rmfakecloud-proxy [-addr host:port] -cert certfile -key keyfile upstream
+usage: rmfakecloud-proxy -c [config.yml] [-addr host:port] -cert certfile -key keyfile [-client-cert file] [-client-key file] [-version] upstream
   -addr string
         listen address (default ":443")
+  -c string
+        config file
   -cert string
         path to cert file
   -key string
         path to key file
-  -c configfile
+  -client-cert string
+        path to client cert file for mTLS (optional)
+  -client-key string
+        path to client key file for mTLS (optional)
+  -version
+        print version string and exit
   upstream string
         upstream url
 ```
@@ -52,5 +59,7 @@ cert: proxy.crt
 key: proxy.key
 upstream: https://somehost:123
 #addr: :443
+#client_cert: client.crt
+#client_key: client.key
 ```
 
