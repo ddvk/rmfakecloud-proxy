@@ -48,10 +48,10 @@ client_key_file=$3
 echo "Setting cloud sync to: ${cloudurl}"
 workdir=$DESTINATION
 
-exec_start="$workdir/${BINARY} -cert $workdir/proxy.bundle.crt -key $workdir/proxy.key"
+exec_start="$workdir/${BINARY} -addr 127.0.0.1:443 -cert $workdir/proxy.bundle.crt -key $workdir/proxy.key"
 
 if [ -n "$client_cert_file" ] && [ -n "$client_key_file" ]; then
-    exec_start="$exec_start -client-cert $workdir/$client_cert_file -client-key $workdir/$client_key_file"
+    exec_start="$exec_start -addr 127.0.0.1:443 -client-cert $workdir/$client_cert_file -client-key $workdir/$client_key_file"
 fi
 
 exec_start="$exec_start ${cloudurl}"
