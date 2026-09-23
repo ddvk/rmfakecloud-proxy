@@ -23,7 +23,7 @@ function prepare_fs(){
     case $device_id in
         "reMarkable 1.0" | "reMarkable Prototype 1"|"reMarkable 2.0")
             ;;
-        "reMarkable Ferrari"|"reMarkable Chiappa")
+        "reMarkable Ferrari"|"reMarkable Chiappa"|"reMarkable Tatsu")
             echo "Detected device with read-only root filesystem - preparing filesystem..."
             mount -o remount,rw / 2>/dev/null || true
             umount -R /etc 2>/dev/null || true
