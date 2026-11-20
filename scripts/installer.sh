@@ -54,6 +54,8 @@ if [ -n "$client_cert_file" ] && [ -n "$client_key_file" ]; then
     exec_start="$exec_start -addr 127.0.0.1:443 -client-cert $workdir/$client_cert_file -client-key $workdir/$client_key_file"
 fi
 
+generate_proxy_hosts
+
 exec_start="$exec_start ${cloudurl}"
 
 cat > /etc/systemd/system/${UNIT_NAME}.service <<EOF
@@ -67,6 +69,7 @@ After=home.mount
 Environment=HOME=/home/root
 WorkingDirectory=$workdir
 ExecStart=$exec_start
+BindReadOnlyPaths=$workdir/hosts.proxy:/etc/hosts
 
 [Install]
 WantedBy=multi-user.target
@@ -74,6 +77,15 @@ EOF
 systemctl daemon-reload
 systemctl enable ${UNIT_NAME}
 systemctl restart ${UNIT_NAME}
+}
+
+# Generates a bare hosts file for the proxy so it isn't impacted by the system hosts file
+function generate_proxy_hosts(){
+	cat > $DESTINATION/hosts.proxy <<EOF
+# Bare-bones hosts file for the proxy process.
+127.0.0.1 localhost
+::1 localhost
+EOF
 }
 
 function uninstall(){
@@ -96,7 +108,9 @@ function uninstall(){
 function generate_certificates(){
 # thanks to  https://gist.github.com/Soarez/9688998
 
-cat <<EOF > csr.conf
+# IP address for the domain, so don't modify the csr config
+if [[ ! -v domain ]]; then
+     cat <<EOF > csr.conf
 [ req ]
 default_bits = 2048
 default_keyfile = proxy.key
@@ -135,6 +149,49 @@ DNS.7 = *.tectonic.remarkable.com
 DNS.8 = *.ping.remarkable.com
 DNS.9 = *.internal.tctn.cloud.remarkable.com
 EOF
+# Domain is an actual domain, so add it to the CSR config
+else
+     cat <<EOF > csr.conf
+[ req ]
+default_bits = 2048
+default_keyfile = proxy.key
+encrypt_key = no
+default_md = sha256
+prompt = no
+utf8 = yes
+distinguished_name = dn
+req_extensions = ext
+x509_extensions = caext
+
+[ dn ]
+C = AA
+ST = QQ
+L = JJ
+O  = the culture
+CN = *.appspot.com
+
+[ ext ]
+subjectAltName=@san
+basicConstraints=CA:FALSE
+subjectKeyIdentifier = hash
+
+
+[ caext ]
+subjectAltName=@san
+
+[ san ]
+DNS.1 = *.appspot.com
+DNS.2 = *.remarkable.com
+DNS.3 = *.cloud.remarkable.com
+DNS.4 = *.cloud.remarkable.engineering
+DNS.5 = *.rmfakecloud.localhost
+DNS.6 = *.internal.cloud.remarkable.com
+DNS.7 = *.tectonic.remarkable.com
+DNS.8 = *.ping.remarkable.com
+DNS.9 = *.internal.tctn.cloud.remarkable.com
+DNS.10 = $domain
+EOF
+fi
 
 # ca
 if [ ! -f ca.crt ]; then 
@@ -195,7 +252,9 @@ function install_certificates(){
 
 function patch_hosts(){
     if  ! grep rmfake_start /etc/hosts ; then
-        cat <<EOF >> /etc/hosts
+	# If domain isn't set due to it being an IP
+	if [[ ! -v domain ]]; then
+             cat <<EOF >> /etc/hosts
 # rmfake_start
 127.0.0.1 hwr-production-dot-remarkable-production.appspot.com
 127.0.0.1 service-manager-production-dot-remarkable-production.appspot.com
@@ -212,6 +271,26 @@ function patch_hosts(){
 127.0.0.1 webapp-prod.cloud.remarkable.engineering
 # rmfake_end
 EOF
+	else # Domain is set, add it to hosts file
+	     cat <<EOF >> /etc/hosts
+# rmfake_start
+127.0.0.1 hwr-production-dot-remarkable-production.appspot.com
+127.0.0.1 service-manager-production-dot-remarkable-production.appspot.com
+127.0.0.1 local.appspot.com
+127.0.0.1 my.remarkable.com
+127.0.0.1 ping.remarkable.com
+127.0.0.1 internal.cloud.remarkable.com
+127.0.0.1 eu.tectonic.remarkable.com
+127.0.0.1 backtrace-proxy.cloud.remarkable.engineering
+127.0.0.1 dev.ping.remarkable.com
+127.0.0.1 dev.tectonic.remarkable.com
+127.0.0.1 dev.internal.cloud.remarkable.com
+127.0.0.1 eu.internal.tctn.cloud.remarkable.com
+127.0.0.1 webapp-prod.cloud.remarkable.engineering
+127.0.0.1 $domain
+# rmfake_end
+EOF
+	fi
     fi
 
 }
@@ -232,9 +311,7 @@ function doinstall(){
     echo "Extracting embedded binary..."
     unpack
     pushd "${DESTINATION}"
-    generate_certificates
-    install_certificates
-    # install proxy
+
     url=$1
     client_cert_file=$2
     client_key_file=$3
@@ -245,7 +322,18 @@ function doinstall(){
         client_cert_file=$(echo $client | cut -d'|' -f1)
         client_key_file=$(echo $client | cut -d'|' -f2)
     fi
-    
+
+    # Extract the domain from the URL
+    domain=$(echo $url | sed -e 's/https:\/\///' -e 's/:[0-9]\+.*//' -)
+    # If the domain is an IP address, unset domain since the new mTLS workaround only
+    # works with domains.
+    if [[ $domain =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+	    unset domain
+    fi
+
+    generate_certificates
+    install_certificates
+    # install proxy
     install_proxyservice "$url" "$client_cert_file" "$client_key_file"
 
     echo "Patching /etc/hosts"
